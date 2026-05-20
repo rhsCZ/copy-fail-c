@@ -14,7 +14,12 @@
  * The on-disk inode is never modified; the testfile is removed on exit,
  * and the page-cache mutation evaporates with it. Runs unprivileged.
  *
- * Exits 100 if the kernel is vulnerable, 0 otherwise.
+ * Exit codes:
+ *   100 - kernel is vulnerable
+ *   0   - kernel is not vulnerable (primitive ran but mutation did not take)
+ *   2   - AF_ALG socket family or authencesn template is unavailable;
+ *         patch state cannot be determined from this test
+ *   1   - other runtime error
  */
 
 #define _GNU_SOURCE
@@ -89,11 +94,27 @@ int main(int argc, char **argv) {
         fprintf(stderr, "[+] patch fd=%d off=%lld bytes=\"%s\"\n",
                 file_fd, (long long)off, window);
         if (patch_chunk(file_fd, off, window) < 0) {
-            fprintf(stderr, "[-] patch_chunk failed at offset %lld\n",
-                    (long long)off);
+            int ret;
+            if (errno == EAFNOSUPPORT) {
+                fprintf(stderr,
+                        "[?] AF_ALG socket family unavailable; kernel patch "
+                        "state cannot be determined from this test\n");
+                ret = 2;
+            } else if (errno == ENOENT) {
+                fprintf(stderr,
+                        "[?] AF_ALG authencesn template not registered; "
+                        "kernel patch state cannot be determined from this "
+                        "test\n");
+                ret = 2;
+            } else {
+                fprintf(stderr, "[-] patch_chunk failed at offset %lld\n",
+                        (long long)off);
+                ret = 1;
+            }
+
             close(file_fd);
             unlink(target);
-            return 1;
+            return ret;
         }
         fprintf(stderr, "[+] patch ok\n");
     }
