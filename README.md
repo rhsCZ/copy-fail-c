@@ -65,7 +65,9 @@ own page cache to overwrite the bytes with `vulnerable`. If the read-back
 contents match, the running kernel is in-window for CVE-2026-31431. The
 on-disk inode is never modified; `testfile` is removed on exit; the page-cache
 mutation evaporates with it. Runs unprivileged. Exits 100 if vulnerable, 0
-otherwise.
+if the primitive ran but the mutation did not take, 2 if the AF_ALG socket
+family or authencesn template is unavailable so patch state cannot be
+determined, and 1 for other runtime errors.
 
 
 ## Build
