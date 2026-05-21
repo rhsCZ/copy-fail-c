@@ -136,6 +136,13 @@ _binary_payload_size     绝对符号，其值为以字节为单位的大小
 在此之间: 每一个没有向后移植该修复的主要发行版内核。
 Ubuntu、RHEL、SUSE、Amazon Linux 和 Debian 在披露时都确认其自带的云镜像内核存在漏洞。发行版级别的向后移植修复在 2026 年 4 月 29 日左右与公开披露同时开始推出。要验证目标内核是否在受影响范围内，请检查 `a664bf3d603d` (或其特定于发行版的向后移植) 是否存在于内核的 git 日志或发行版的更改日志中。
 
+## 商业支持
+
+如需付费的安全审查、定制移植或非公开安全公告，请通过作者的咨询公司 Crash United, LLC 与其联系。
+
+联系方式: tony.gies@crashunited.com · https://crashunited.com  
+GitHub: [@tgies](https://github.com/tgies) · X/Twitter: [@me_irl](https://x.com/me_irl)
+
 ## 许可证和致谢
 
 CVE-2026-31431 的发现和最初披露: Theori / Xint。

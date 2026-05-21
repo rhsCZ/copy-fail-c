@@ -222,6 +222,14 @@ disclosure. To verify whether a target kernel is in-window, check whether
 git log or the distro's changelog.
 
 
+## Commercial support
+
+For paid security review, custom porting work, or private security advisories, contact the author through his consultancy, Crash United, LLC.
+
+Contact: tony.gies@crashunited.com · https://crashunited.com  
+GitHub: [@tgies](https://github.com/tgies) · X/Twitter: [@me_irl](https://x.com/me_irl)
+
+
 ## License and credits
 
 Discovery and original disclosure of CVE-2026-31431: Theori / Xint.
