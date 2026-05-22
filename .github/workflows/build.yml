@@ -148,64 +148,67 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts
-      - name: rename binaries for release upload
+      - name: package release tarballs
         run: |
           mkdir -p release
+          stagebase="$(mktemp -d)"
           for d in artifacts/copy-fail-c-*; do
             base=$(basename "$d")
-            passwd_name="${base/copy-fail-c-/copy-fail-c-passwd-}"
-            vulnerable_name="${base/copy-fail-c-/copy-fail-c-vulnerable-}"
-            cp "$d/exploit" "release/$base"
-            cp "$d/exploit-passwd" "release/$passwd_name"
-            cp "$d/vulnerable" "release/$vulnerable_name"
-            chmod +x "release/$base" "release/$passwd_name" "release/$vulnerable_name"
+            stage="$stagebase/$base"
+            mkdir -p "$stage"
+            cp "$d/exploit" "$d/exploit-passwd" "$d/vulnerable" "$stage/"
+            cp README.md LICENSE-MIT LICENSE-LGPL "$stage/"
+            chmod +x "$stage/exploit" "$stage/exploit-passwd" "$stage/vulnerable"
+            tar -czf "release/${base}.tar.gz" -C "$stagebase" "$base"
           done
+          ( cd release && sha256sum *.tar.gz > SHA256SUMS )
           ls -la release/
       - name: create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
         run: |
           gh release create "$TAG" \
             --title "$TAG" \
-            --notes-file - release/* <<EOF
+            --notes-file - release/* <<'EOF'
           Cross-platform C port of CVE-2026-31431 (Copy Fail).
 
           Discovery and disclosure: Theori / Xint, https://copy.fail/
 
-          ## Binaries
+          ## Downloads
 
-          Each binary is statically linked. Download the one matching the
-          target's architecture, libc, and exploit variant.
+          Each archive is named `copy-fail-c-<arch>-<libc>.tar.gz` and
+          contains three statically-linked binaries plus README and LICENSE:
 
-          Exploit variants:
+          * `exploit`: binary-mutation variant. Mutates a setuid binary's
+            page cache, then execs it.
+          * `exploit-passwd`: /etc/passwd UID-flip variant. Mutates four
+            bytes of /etc/passwd's page cache, then execs `su`. Works where
+            the binary-mutation route is blocked but has a narrower cashout
+            surface; see README for details.
+          * `vulnerable`: non-destructive vulnerability checker. Creates a
+            local testfile and runs the AF_ALG/splice primitive against
+            its own page cache to detect kernel susceptibility, without
+            touching any system file. Runs unprivileged. Exits 100 if
+            vulnerable, 0 otherwise.
 
-          * \`copy-fail-c-<arch>-<libc>\`: binary-mutation variant. Mutates
-            a setuid binary's page cache, then execs it.
-          * \`copy-fail-c-passwd-<arch>-<libc>\`: /etc/passwd UID-flip variant.
-            Mutates four bytes of /etc/passwd's page cache, then execs `su`.
-            Works where the binary-mutation route is blocked but has a
-            narrower cashout surface; see README for details.
+          ## Build modes
 
-          Detection (non-destructive):
-
-          * \`copy-fail-c-vulnerable-<arch>-<libc>\`: vulnerability checker.
-            Creates a local testfile and runs the AF_ALG/splice primitive
-            against its own page cache to detect kernel susceptibility,
-            without touching any system file. Runs unprivileged. Exits 100
-            if vulnerable, 0 otherwise.
-
-          Build modes:
-
-          * \`-glibc\` builds: GNU cross-toolchain, glibc-static. Larger (~800 KB)
-            but functionally identical to source-built binaries on a glibc system.
-          * \`-musl\` builds: zig cc + musl-static. Smaller (~30-60 KB) and
+          * `-glibc`: GNU cross-toolchain, glibc-static. Larger (~800 KB)
+            but functionally identical to source-built binaries on a
+            glibc system.
+          * `-musl`: zig cc + musl-static. Smaller (~30-60 KB) and
             forward-compatible with any glibc version on the target.
 
           Architectures: x86_64, aarch64, armv7, riscv64, ppc64le, s390x.
 
-          See [README](https://github.com/$REPO/blob/main/README.md)
-          for the kernel-version window of applicability and a description of
-          the exploit mechanism.
+          ## Verification
+
+          `SHA256SUMS` lists the SHA-256 of every tarball:
+
+              sha256sum -c SHA256SUMS
+
+          See the [README](https://github.com/tgies/copy-fail-c/blob/main/README.md)
+          for the kernel-version window of applicability and a description
+          of the exploit mechanism.
           EOF
